@@ -4,7 +4,7 @@ const app = express();
 
 app.get("/", (req, res) => {
     return res.status(200).json({
-        message: "Hey there"
+        message: "Hey there, we have succesfully complete the CD integrations"
     })
 })
 
