@@ -1,0 +1,45 @@
+# here we make the continous deployment file
+# steps we want the runner to do:
+name: Continous Deployment for the express app
+on:
+    push:
+        branches: [ main ]
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Install node.js
+              # here we run the setup.sh file to build the project
+              uses: actions/setup-node@v3
+              with:
+                node-version: "22.18.0"
+            
+            - name: Install dependencies
+              run: npm install
+
+            - name: Build project
+              run: npm run build
+
+            - name: Copy files to server
+              uses: appleboy/scp-action@v0.1.6
+              with:
+                host: ${{ secrets.SERVER_HOST }}
+                username: ${{ secrets.SERVER_USER }}
+                key: ${{ secrets.SERVER_SSH_KEY }}
+                source: "dist/,package.json,package-lock.json"
+                target: "/var/www/expressapp/"
+
+            - name: Restart app on server
+              uses: appleboy/ssh-action@v1.0.3
+              with:
+                host: ${{ secrets.SERVER_HOST }}
+                username: ${{ secrets.SERVER_USER }}
+                key: ${{ secrets.SERVER_SSH_KEY }}
+                script: |
+                    export PATH=$HOME/.nvm/versions/node/v22.18.0/bin:$PATH
+                    cd /var/www/expressapp
+                    npm install
+                    pm2 restart expressapp || pm2 start npm --name "expressapp" -- run start
